@@ -18,19 +18,35 @@ function limpar_dados_teste(PDO $pdo): array
     return $n;
 }
 
+/** INSERT de várias linhas de uma vez (poucas idas e voltas ao banco, que pode estar longe). */
+function inserir_em_lote(PDO $pdo, string $tabela, array $linhas, int $porVez = 100): void
+{
+    if (!$linhas) return;
+    $cols = array_keys($linhas[0]);
+    $lista = implode(', ', array_map(fn($k) => "`$k`", $cols));
+    $um = '(' . implode(', ', array_fill(0, count($cols), '?')) . ')';
+    foreach (array_chunk($linhas, $porVez) as $lote) {
+        $args = [];
+        foreach ($lote as $l) foreach ($cols as $k) $args[] = $l[$k];
+        executar($pdo, "INSERT INTO `$tabela` ($lista) VALUES " . implode(', ', array_fill(0, count($lote), $um)), $args);
+    }
+}
+
 function gerar_dados_teste(PDO $pdo): array
 {
+    @set_time_limit(120);
     mt_srand(2026); // sempre os mesmos números
     $pdo->beginTransaction();
     try {
         limpar_dados_teste($pdo);
 
-        // Categorias (as mesmas dos dados reais; cria a que faltar)
-        $cat = function (string $nome, string $tipo = 'despesa') use ($pdo): int {
-            $id = linha($pdo, 'SELECT id FROM categorias WHERE nome = ? AND tipo = ? AND pai_id IS NULL', [$nome, $tipo])['id'] ?? null;
-            if ($id) return (int) $id;
+        // Categorias (as mesmas dos dados reais; cria a que faltar). Uma consulta só: o banco pode estar longe.
+        $cats = [];
+        foreach (linhas($pdo, 'SELECT id, nome, tipo FROM categorias WHERE pai_id IS NULL') as $c) $cats["{$c['tipo']}|{$c['nome']}"] = (int) $c['id'];
+        $cat = function (string $nome, string $tipo = 'despesa') use ($pdo, &$cats): int {
+            if (isset($cats["$tipo|$nome"])) return $cats["$tipo|$nome"];
             executar($pdo, 'INSERT INTO categorias (nome, tipo) VALUES (?, ?)', [$nome, $tipo]);
-            return (int) $pdo->lastInsertId();
+            return $cats["$tipo|$nome"] = (int) $pdo->lastInsertId();
         };
 
         // Contas e cartões
@@ -51,8 +67,9 @@ function gerar_dados_teste(PDO $pdo): array
         $cit = $conta(['nome' => 'Itaú Visa', 'tipo' => 'cartao', 'cor' => '#005CA9', 'limite' => 5000, 'dia_fechamento' => 25, 'dia_vencimento' => 5, 'conta_pagamento_id' => $itau['id']]);
 
         $hoje = date('Y-m-d');
-        $total = 0;
-        $lanc = function (string $tipo, array $c, ?int $categoria, string $descricao, float $valor, string $data, array $extra = []) use ($pdo, $hoje, &$total) {
+        $fila = [];       // lançamentos a inserir (em lote, no fim)
+        $faturas = [];    // total de cada fatura: "cartao|AAAA-MM-01" => valor
+        $lanc = function (string $tipo, array $c, ?int $categoria, string $descricao, float $valor, string $data, array $extra = []) use ($hoje, &$fila, &$faturas) {
             $d = [
                 'tipo' => $tipo, 'conta_id' => $c['id'], 'conta_destino_id' => $extra['destino'] ?? null, 'categoria_id' => $categoria,
                 'descricao' => $descricao, 'valor' => round($valor, 2), 'data' => $data,
@@ -61,13 +78,23 @@ function gerar_dados_teste(PDO $pdo): array
                 'parcela' => $extra['parcela'] ?? null, 'parcelas' => $extra['parcelas'] ?? null, 'grupo' => $extra['grupo'] ?? null,
                 'teste' => 1,
             ];
-            $cols = implode(', ', array_map(fn($k) => "`$k`", array_keys($d)));
-            $vals = implode(', ', array_map(fn($k) => ":$k", array_keys($d)));
-            executar($pdo, "INSERT INTO lancamentos ($cols) VALUES ($vals)", $d);
-            $total++;
+            if ($c['tipo'] === 'cartao' && $tipo !== 'transferencia') {
+                $k = "{$c['id']}|{$d['fatura']}";
+                $faturas[$k] = ($faturas[$k] ?? 0) + ($tipo === 'despesa' ? $d['valor'] : -$d['valor']);
+            }
+            $fila[] = $d;
         };
         $rnd = fn(float $a, float $b) => round($a + (mt_rand() / mt_getrandmax()) * ($b - $a), 2);
         $dia = fn(string $mes, int $d) => dia_do_mes($mes, $d);
+
+        // Compra parcelada: notebook em 10x no cartão, há 3 meses
+        $dataNote = $dia(substr(somar_meses(date('Y-m-01'), -3), 0, 7), 4);
+        $grupo = bin2hex(random_bytes(8));
+        $fat0 = fatura_da_compra($dataNote, $cnu);
+        for ($p = 0; $p < 10; $p++) {
+            $lanc('despesa', $cnu, $cat('Compras'), 'Notebook', $p === 0 ? 500.08 : 499.99, somar_meses($dataNote, $p),
+                ['fatura' => substr(somar_meses($fat0, $p), 0, 7) . '-01', 'parcela' => $p + 1, 'parcelas' => 10, 'grupo' => $grupo]);
+        }
 
         $mesAtual = date('Y-m');
         for ($i = -5; $i <= 0; $i++) {
@@ -110,38 +137,33 @@ function gerar_dados_teste(PDO $pdo): array
             foreach ([$cnu, $cit] as $c) {
                 $fatura = "$mes-01";
                 $venc = datas_fatura($fatura, $c)['vencimento'];
-                $t = totais_fatura($pdo, $c['id'], $fatura);
-                if ($t['total'] > 0 && $venc <= $hoje) {
+                $total = round($faturas["{$c['id']}|$fatura"] ?? 0, 2);
+                if ($total > 0 && $venc <= $hoje) {
                     $pag = $c['conta_pagamento_id'] === $nubank['id'] ? $nubank : $itau;
-                    $lanc('transferencia', $pag, null, "Fatura {$c['nome']}", $t['total'], $venc, ['destino' => $c['id'], 'fatura' => $fatura]);
+                    $lanc('transferencia', $pag, null, "Fatura {$c['nome']}", $total, $venc, ['destino' => $c['id'], 'fatura' => $fatura]);
                 }
             }
         }
 
-        // Compra parcelada: notebook em 10x no cartão, há 3 meses
-        $dataNote = $dia(substr(somar_meses(date('Y-m-01'), -3), 0, 7), 4);
-        $grupo = bin2hex(random_bytes(8));
-        $fat0 = fatura_da_compra($dataNote, $cnu);
-        for ($p = 0; $p < 10; $p++) {
-            $lanc('despesa', $cnu, $cat('Compras'), 'Notebook', $p === 0 ? 500.08 : 499.99, somar_meses($dataNote, $p),
-                ['fatura' => substr(somar_meses($fat0, $p), 0, 7) . '-01', 'parcela' => $p + 1, 'parcelas' => 10, 'grupo' => $grupo]);
-        }
+        inserir_em_lote($pdo, 'lancamentos', $fila);
 
         // Orçamento do mês atual e do anterior
         foreach ([0, -1] as $i) {
             $mes = substr(somar_meses(date('Y-m-01'), $i), 0, 7);
+            $orc = [];
             foreach (['Mercado' => 1500, 'Alimentação fora' => 600, 'Transporte' => 500, 'Lazer' => 350, 'Assinaturas' => 250, 'Saúde' => 300] as $nome => $v) {
-                executar($pdo, 'INSERT INTO orcamentos (mes, categoria_id, valor, teste) VALUES (?, ?, ?, 1)', [$mes, $cat($nome), $v]);
+                $orc[] = ['mes' => $mes, 'categoria_id' => $cat($nome), 'valor' => $v, 'teste' => 1];
             }
+            inserir_em_lote($pdo, 'orcamentos', $orc);
         }
 
         // Metas e aportes
         $meta = function (string $nome, float $alvo, ?string $prazo, string $cor, float $aporte) use ($pdo, $rnd) {
             executar($pdo, 'INSERT INTO metas (nome, valor_alvo, prazo, cor, teste) VALUES (?, ?, ?, ?, 1)', [$nome, $alvo, $prazo, $cor]);
             $id = (int) $pdo->lastInsertId();
-            for ($i = -5; $i <= 0; $i++) {
-                executar($pdo, 'INSERT INTO aportes (meta_id, data, valor) VALUES (?, ?, ?)', [$id, dia_do_mes(substr(somar_meses(date('Y-m-01'), $i), 0, 7), 6), $aporte]);
-            }
+            $ap = [];
+            for ($i = -5; $i <= 0; $i++) $ap[] = ['meta_id' => $id, 'data' => dia_do_mes(substr(somar_meses(date('Y-m-01'), $i), 0, 7), 6), 'valor' => $aporte];
+            inserir_em_lote($pdo, 'aportes', $ap);
             return $id;
         };
         $reserva = $meta('Reserva de emergência', 30000, null, '#2C5E4A', 1000);
@@ -152,12 +174,13 @@ function gerar_dados_teste(PDO $pdo): array
             executar($pdo, 'INSERT INTO investimentos (nome, classe, instituicao, meta_id, liquidez, teste) VALUES (?, ?, ?, ?, ?, 1)',
                 [$nome, $classe, $inst, $meta, $classe === 'acoes' || $classe === 'fiis' ? 'D+2' : 'diária']);
             $id = (int) $pdo->lastInsertId();
-            $aplicado = $base; $atual = $base;
+            $aplicado = $base; $atual = $base; $pos = [];
             for ($i = -5; $i <= 0; $i++) {
                 $aplicado += $aporte; $atual = ($atual + $aporte) * (1 + $taxa);
-                executar($pdo, 'INSERT INTO posicoes (investimento_id, data, valor_aplicado, valor_atual) VALUES (?, ?, ?, ?)',
-                    [$id, date('Y-m-t', strtotime(somar_meses(date('Y-m-01'), $i))), round($aplicado, 2), round($atual, 2)]);
+                $pos[] = ['investimento_id' => $id, 'data' => date('Y-m-t', strtotime(somar_meses(date('Y-m-01'), $i))),
+                          'valor_aplicado' => round($aplicado, 2), 'valor_atual' => round($atual, 2)];
             }
+            inserir_em_lote($pdo, 'posicoes', $pos);
         };
         $inv('Tesouro Selic 2029', 'tesouro', 'Itaú', $reserva, 9000, 1000, 0.0085);
         $inv('CDB Inter 110% CDI', 'renda_fixa', 'Inter', $viagem, 2500, 800, 0.0092);
@@ -165,7 +188,7 @@ function gerar_dados_teste(PDO $pdo): array
         $inv('Ações ITSA4', 'acoes', 'XP', null, 1800, 0, 0.011);
 
         $pdo->commit();
-        return ['lancamentos' => $total, 'contas' => 5, 'metas' => 2, 'investimentos' => 4];
+        return ['lancamentos' => count($fila), 'contas' => 5, 'metas' => 2, 'investimentos' => 4];
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;

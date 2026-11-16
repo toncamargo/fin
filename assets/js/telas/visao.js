@@ -1,7 +1,7 @@
 /* Visão do mês: quanto sobrou, onde foi o dinheiro, contas, faturas e o que falta pagar. */
 import { estado } from "../estado.js";
 import { api } from "../api.js";
-import { esc, brl, valor, nomeMes, nomeMesCurto, dataCurta } from "../util.js";
+import { esc, brl, valor, nomeMes, nomeMesCurto, dataCurta, avisar } from "../util.js";
 import { icone } from "../icones.js";
 import { abrirLancamento, abrirConta } from "../gaveta.js";
 
@@ -134,10 +134,19 @@ function grafico(serie) {
 function ligar(tela, r) {
   tela.querySelector("[data-nova-conta]")?.addEventListener("click", () => abrirConta());
   tela.querySelector("[data-gerar-teste]")?.addEventListener("click", async (ev) => {
-    ev.currentTarget.disabled = true;
-    ev.currentTarget.textContent = "Criando…";
-    await api.post("teste", { acao: "gerar" });
-    document.dispatchEvent(new CustomEvent("fin:mudou"));
+    const b = ev.currentTarget;
+    const texto = b.innerHTML;
+    b.disabled = true;
+    b.textContent = "Criando… (leva alguns segundos)";
+    try {
+      const r = await api.post("teste", { acao: "gerar" });
+      avisar(`Exemplo criado: ${r.lancamentos} lançamentos.`);
+      document.dispatchEvent(new CustomEvent("fin:mudou"));
+    } catch (e) {
+      b.disabled = false;
+      b.innerHTML = texto;
+      avisar(e.message, "erro");
+    }
   });
   tela.querySelector("[data-novo-cartao]")?.addEventListener("click", () => abrirConta(null, { tipo: "cartao" }));
   tela.querySelectorAll("[data-pagar]").forEach((b) => b.addEventListener("click", async () => {
