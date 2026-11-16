@@ -7,6 +7,7 @@
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
+require __DIR__ . '/../api/lib/resposta.php';
 require __DIR__ . '/../api/lib/banco.php';
 $config = require __DIR__ . '/../api/lib/config.php';
 $opcao = $argv[1] ?? '';

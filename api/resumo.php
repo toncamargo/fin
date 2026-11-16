@@ -31,7 +31,7 @@ endpoint(function (PDO $pdo) {
         LEFT JOIN categorias mae ON mae.id = cat.pai_id
         WHERE l.tipo = 'despesa' AND $filtro
         GROUP BY 1, 2, 3, 4 ORDER BY gasto DESC", $args);
-    $orc = array_column(linhas($pdo, 'SELECT categoria_id, valor FROM orcamentos WHERE mes = ?', [$mes]), 'valor', 'categoria_id');
+    $orc = array_column(linhas($pdo, 'SELECT categoria_id, valor FROM orcamentos WHERE mes = ? AND teste = ?', [$mes, modo_teste()]), 'valor', 'categoria_id');
     foreach ($categorias as &$c) {
         $c['gasto'] = round((float) $c['gasto'], 2);
         $c['orcado'] = isset($orc[$c['id']]) ? (float) $orc[$c['id']] : null;
@@ -49,7 +49,7 @@ endpoint(function (PDO $pdo) {
     $saldos = saldos_contas($pdo);
     $contas = [];
     $patrimonio = 0.0;
-    foreach (linhas($pdo, 'SELECT * FROM contas WHERE ativo = 1 ORDER BY tipo = "cartao", ordem, nome') as $c) {
+    foreach (linhas($pdo, 'SELECT * FROM contas WHERE ativo = 1 AND teste = ? ORDER BY tipo = "cartao", ordem, nome', [modo_teste()]) as $c) {
         if ($c['tipo'] === 'cartao') {
             if (!$c['dia_fechamento']) continue;
             $fatura = inicio_mes($mes);
@@ -83,6 +83,7 @@ endpoint(function (PDO $pdo) {
     return [
         'mes' => $mes, 'totais' => $tot, 'categorias' => $categorias, 'contas' => $contas,
         'patrimonio' => round($patrimonio, 2), 'abertos' => $abertos, 'serie' => $serie,
-        'vazio' => !linha($pdo, 'SELECT id FROM contas LIMIT 1'),
+        'vazio' => !linha($pdo, 'SELECT id FROM contas WHERE teste = ? LIMIT 1', [modo_teste()]),
+        'teste' => (bool) modo_teste(),
     ];
 });

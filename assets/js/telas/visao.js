@@ -16,6 +16,12 @@ export async function mostrar(tela) {
 const esqueleto = () => `<div class="esq-hero"></div><div class="esq-linhas">${"<i></i>".repeat(6)}</div>`;
 
 function boasVindas() {
+  if (estado.teste) return `<section class="boas-vindas">
+    <h1>Ainda não há dados de teste</h1>
+    <p>Crie um exemplo com seis meses de salário, contas fixas, mercado, dois cartões (com faturas e uma compra parcelada),
+       orçamento, metas e investimentos. Tudo fica marcado como teste e não se mistura com os seus dados.</p>
+    <div class="acoes"><button class="botao primario" data-gerar-teste>${icone("sparkles", 16)}Criar dados de exemplo</button></div>
+  </section>`;
   return `<section class="boas-vindas">
     <h1>Vamos começar pelas suas contas</h1>
     <p>Cadastre onde o seu dinheiro fica (conta corrente, poupança, carteira) e os cartões de crédito.
@@ -127,6 +133,12 @@ function grafico(serie) {
 
 function ligar(tela, r) {
   tela.querySelector("[data-nova-conta]")?.addEventListener("click", () => abrirConta());
+  tela.querySelector("[data-gerar-teste]")?.addEventListener("click", async (ev) => {
+    ev.currentTarget.disabled = true;
+    ev.currentTarget.textContent = "Criando…";
+    await api.post("teste", { acao: "gerar" });
+    document.dispatchEvent(new CustomEvent("fin:mudou"));
+  });
   tela.querySelector("[data-novo-cartao]")?.addEventListener("click", () => abrirConta(null, { tipo: "cartao" }));
   tela.querySelectorAll("[data-pagar]").forEach((b) => b.addEventListener("click", async () => {
     b.disabled = true;

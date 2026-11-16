@@ -96,6 +96,15 @@ function rotulo(string $campo): string
 }
 
 // ---------------------------------------------------------------------------
+// Modo de dados: reais ou de teste (cabeçalho X-Fin-Teste: 1, enviado pelo site)
+// ---------------------------------------------------------------------------
+
+function modo_teste(): int
+{
+    return (($_SERVER['HTTP_X_FIN_TESTE'] ?? '') === '1' || ($_GET['teste'] ?? '') === '1') ? 1 : 0;
+}
+
+// ---------------------------------------------------------------------------
 // Datas e cartão
 // ---------------------------------------------------------------------------
 
@@ -143,9 +152,11 @@ function datas_fatura(string $fatura, array $cartao): array
 // Cadastros auxiliares
 // ---------------------------------------------------------------------------
 
+/** Conta do modo atual (uma conta de teste não aparece nem é usada no modo de dados reais, e vice-versa). */
 function conta(PDO $pdo, int $id): array
 {
-    return linha($pdo, 'SELECT * FROM contas WHERE id = ?', [$id]) ?? throw new ErroValidacao('Conta não encontrada.');
+    return linha($pdo, 'SELECT * FROM contas WHERE id = ? AND teste = ?', [$id, modo_teste()])
+        ?? throw new ErroValidacao('Conta não encontrada.');
 }
 
 /**
@@ -154,8 +165,8 @@ function conta(PDO $pdo, int $id): array
  */
 function sql_no_mes(string $mes): array
 {
-    return ["((c.tipo <> 'cartao' AND l.data BETWEEN :m_ini AND :m_fim) OR (c.tipo = 'cartao' AND l.fatura = :m_fat))",
-        ['m_ini' => inicio_mes($mes), 'm_fim' => fim_mes($mes), 'm_fat' => inicio_mes($mes)]];
+    return ["((c.tipo <> 'cartao' AND l.data BETWEEN :m_ini AND :m_fim) OR (c.tipo = 'cartao' AND l.fatura = :m_fat)) AND c.teste = :m_teste",
+        ['m_ini' => inicio_mes($mes), 'm_fim' => fim_mes($mes), 'm_fat' => inicio_mes($mes), 'm_teste' => modo_teste()]];
 }
 
 /** Saldo atual de uma conta comum (só o que está pago, a partir da data do saldo inicial). */
@@ -172,8 +183,8 @@ function saldos_contas(PDO $pdo, ?string $ate = null): array
         FROM contas c
         LEFT JOIN lancamentos l ON (l.conta_id = c.id OR l.conta_destino_id = c.id) AND l.pago = 1
              AND l.data <= :ate AND (c.data_inicial IS NULL OR l.data >= c.data_inicial)
-        WHERE c.tipo <> 'cartao'
-        GROUP BY c.id", ['ate' => $ate]);
+        WHERE c.tipo <> 'cartao' AND c.teste = :teste
+        GROUP BY c.id", ['ate' => $ate, 'teste' => modo_teste()]);
     return array_column($rows, 'saldo', 'id');
 }
 

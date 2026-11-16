@@ -14,6 +14,17 @@ php -S 127.0.0.1:8788 router.php
 Abra **http://localhost:8788** (o Google não aceita 127.0.0.1).
 Sem `GOOGLE_*` no `.env`, o site funciona só no próprio computador, sem login.
 
+## Dados de teste
+
+Para ver o Fin funcionando sem os seus dados: marque **Dados de teste** no trilho (embaixo, à esquerda).
+Uma faixa amarela avisa que nada ali é real. Na primeira vez, clique em **Criar dados de exemplo**:
+seis meses de salário, contas fixas, mercado, dois cartões (faturas pagas e uma compra parcelada),
+orçamento, metas e investimentos.
+
+- Tudo fica marcado com `teste = 1` e nunca aparece nem se mistura com os dados reais.
+- O que você lançar no modo teste também fica marcado como teste.
+- Pelo Terminal: `php scripts/dados-teste.php` (cria/recria) e `php scripts/dados-teste.php --limpar`.
+
 ## Estrutura
 
 ```
@@ -23,10 +34,11 @@ assets/js/                  main.js (login, mês, rotas) · gaveta.js (formulár
 assets/js/telas/            visao.js · lancamentos.js · contas.js · embreve.js
 assets/img/                 favicon e a trama de fundo
 assets/vendor/              fonte Manrope e licenças
-api/                        resumo.php · lancamentos.php · cadastros.php · auth/ (login com Google)
+api/                        resumo.php · lancamentos.php · cadastros.php · teste.php · auth/ (login com Google)
 api/lib/                    config, banco, sessão, regras de negócio (financas.php) — bloqueado na web
 db/migracoes/               SQL numerado; aplicado por scripts/migrar.php
 scripts/migrar.php          migrações (--status, --testar)
+scripts/dados-teste.php     cria/apaga os dados de teste
 router.php                  servidor local (reproduz as proteções do .htaccess)
 ```
 

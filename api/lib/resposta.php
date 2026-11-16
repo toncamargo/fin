@@ -58,6 +58,8 @@ function endpoint(callable $acao): void
         responder_json($acao($pdo, $config));
     } catch (ErroValidacao $e) {
         responder_json(['erro' => $e->getMessage()], 422);
+    } catch (ErroConfiguracao $e) {
+        responder_erro($e->getMessage(), $e, 503);
     } catch (PDOException $e) {
         if ($e->getCode() === '42S02') responder_erro('Falta preparar o banco: rode "php scripts/migrar.php".', $e, 409);
         if ($e->getCode() === '23000') responder_erro('Esse registro conflita com outro (duplicado ou em uso).', $e, 409);

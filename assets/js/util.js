@@ -6,8 +6,9 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 export const brl = (v) => fmtBRL.format(Number(v || 0));
 /** Valor com cor/sinal conforme o tipo. */
 export function valor(v, tipo = "") {
-  const sinal = tipo === "despesa" ? "− " : tipo === "receita" ? "+ " : "";
-  return `<span class="valor ${tipo}">${sinal}${esc(brl(v))}</span>`;
+  // Com tipo, o sinal vem do tipo (o número vai sem sinal); sem tipo, mostra o sinal do próprio número
+  const sinal = tipo === "despesa" ? "\u2212\u2009" : tipo === "receita" ? "+\u2009" : "";
+  return `<span class="valor ${tipo}">${sinal}${esc(brl(tipo ? Math.abs(v) : v))}</span>`;
 }
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];

@@ -5,6 +5,7 @@ import { api } from "./api.js";
 export const estado = {
   mes: mesAtual(),
   privado: ler("privado", false),
+  teste: ler("teste", false),   // true = mostrando os dados de teste (coluna teste = 1)
   cadastros: null,      // { contas, categorias } — recarregado quando algo muda
 };
 

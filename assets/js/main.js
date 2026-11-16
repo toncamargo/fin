@@ -46,6 +46,7 @@ async function iniciar() {
   montarMes();
   document.body.classList.toggle("privado", estado.privado);
   atualizarPrivado();
+  aplicarModo();
   navegar();
 }
 
@@ -116,6 +117,37 @@ document.getElementById("btn-privado").addEventListener("click", () => {
   gravar("privado", estado.privado);
   document.body.classList.toggle("privado", estado.privado);
   atualizarPrivado();
+});
+
+// ---------- Dados de teste ----------
+const chkTeste = document.getElementById("chk-teste");
+function aplicarModo() {
+  document.body.classList.toggle("modo-teste", estado.teste);
+  chkTeste.checked = estado.teste;
+  document.getElementById("faixa-teste").hidden = !estado.teste;
+  document.querySelector('meta[name="theme-color"]').content = estado.teste ? "#F6E7C8" : "#F2F4EF";
+}
+export function trocarModo(teste) {
+  estado.teste = teste;
+  estado.cadastros = null;
+  gravar("teste", teste);
+  aplicarModo();
+  renderizar();
+}
+chkTeste.addEventListener("change", () => trocarModo(chkTeste.checked));
+document.getElementById("faixa-teste").addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-teste]");
+  if (!b) return;
+  const acao = b.dataset.teste;
+  if (acao === "sair") return trocarModo(false);
+  if (acao === "limpar" && !confirm("Apagar todos os dados de teste? Os seus dados reais não são tocados.")) return;
+  b.disabled = true;
+  try {
+    const r = await api.post("teste", { acao });
+    avisar(acao === "gerar" ? `Exemplo recriado: ${r.lancamentos} lançamentos.` : "Dados de teste apagados.");
+    estado.cadastros = null;
+    renderizar();
+  } catch (e) { avisar(e.message, "erro"); } finally { b.disabled = false; }
 });
 
 // ---------- Novo lançamento ----------

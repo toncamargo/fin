@@ -48,12 +48,23 @@
       </nav>
 
       <div class="conta">
+        <label class="alternar-teste" title="Alterna entre os seus dados e um exemplo fictício"><input type="checkbox" id="chk-teste"> Dados de teste</label>
         <button id="btn-privado" class="botao-texto" aria-pressed="false">Esconder valores</button>
         <button id="btn-conta" class="conta-quem"></button>
       </div>
     </aside>
 
-    <main id="tela" class="tela" tabindex="-1"></main>
+    <div class="area">
+      <div id="faixa-teste" class="faixa-teste" role="status" hidden>
+        <p><strong>Dados de teste.</strong> Nada aqui é real; o que você lançar neste modo também fica marcado como teste.</p>
+        <div class="faixa-acoes">
+          <button class="link" data-teste="gerar">Recriar exemplo</button>
+          <button class="link" data-teste="limpar">Apagar dados de teste</button>
+          <button class="botao" data-teste="sair">Sair do teste</button>
+        </div>
+      </div>
+      <main id="tela" class="tela" tabindex="-1"></main>
+    </div>
 
     <button id="btn-lancar" class="lancar" aria-label="Novo lançamento (N)" title="Novo lançamento (N)"></button>
   </div>

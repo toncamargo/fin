@@ -24,7 +24,7 @@ endpoint(function (PDO $pdo) {
 function cadastros(PDO $pdo): array
 {
     $saldos = saldos_contas($pdo);
-    $contas = linhas($pdo, 'SELECT * FROM contas ORDER BY ativo DESC, tipo = "cartao", ordem, nome');
+    $contas = linhas($pdo, 'SELECT * FROM contas WHERE teste = ? ORDER BY ativo DESC, tipo = "cartao", ordem, nome', [modo_teste()]);
     $hoje = date('Y-m-d');
     foreach ($contas as &$c) {
         if ($c['tipo'] === 'cartao') {
@@ -58,6 +58,7 @@ function salvar_conta(PDO $pdo, array $e): array
         'conta_pagamento_id' => $tipo === 'cartao' ? id_ok($e['conta_pagamento_id'] ?? null, 'conta_pagamento_id', false) : null,
         'ativo' => array_key_exists('ativo', $e) ? (int) (bool) $e['ativo'] : 1,
     ];
+    if ($d['conta_pagamento_id']) conta($pdo, $d['conta_pagamento_id']); // precisa ser do mesmo modo (real/teste)
     if ($tipo === 'cartao') {
         foreach (['dia_fechamento' => 'fechamento', 'dia_vencimento' => 'vencimento'] as $k => $nome) {
             $dia = (int) ($e[$k] ?? 0);
@@ -66,9 +67,11 @@ function salvar_conta(PDO $pdo, array $e): array
         }
     }
     if ($id) {
+        conta($pdo, $id);
         $sets = implode(', ', array_map(fn($k) => "`$k` = :$k", array_keys($d)));
         executar($pdo, "UPDATE contas SET $sets WHERE id = :id", $d + ['id' => $id]);
     } else {
+        $d['teste'] = modo_teste();
         $cols = implode(', ', array_keys($d));
         $vals = implode(', ', array_map(fn($k) => ":$k", array_keys($d)));
         executar($pdo, "INSERT INTO contas ($cols) VALUES ($vals)", $d);
@@ -81,6 +84,7 @@ function salvar_conta(PDO $pdo, array $e): array
 function apagar_conta(PDO $pdo, array $e): array
 {
     $id = id_ok($e['id'] ?? null, 'id');
+    conta($pdo, $id);
     $usos = (int) linha($pdo, 'SELECT COUNT(*) n FROM lancamentos WHERE conta_id = ? OR conta_destino_id = ?', [$id, $id])['n'];
     if ($usos) {
         executar($pdo, 'UPDATE contas SET ativo = 0 WHERE id = ?', [$id]);

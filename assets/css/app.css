@@ -2,6 +2,7 @@
    Estrutura: trilho (marca, mês, seções, conta) + tela + gaveta lateral
    ========================================================================= */
 .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+.area { min-width: 0; }
 
 .trilho {
   position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 28px;
@@ -143,3 +144,26 @@
 .sem-servidor p { color: var(--suave); }
 .sem-servidor pre { margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--tinta); color: #E8F1E4; font: 500 14px/1.6 ui-monospace, Menlo, monospace; overflow-x: auto; }
 .sem-servidor a { color: var(--verde); font-weight: 700; }
+
+/* Dados de teste: chave discreta no trilho + faixa bem visível no topo da tela */
+.alternar-teste { display: flex; align-items: center; gap: 7px; font-size: var(--t-1); font-weight: 600; color: var(--apagado); cursor: pointer; }
+.alternar-teste input { width: 14px; height: 14px; margin: 0; accent-color: var(--alerta); }
+.modo-teste .alternar-teste { color: var(--alerta); }
+.faixa-teste {
+  position: sticky; top: 0; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap;
+  padding: 10px clamp(20px, 4vw, 56px); background: #F6E7C8; border-bottom: 1px solid #E6CF9E; color: #6B4A0E; font-size: var(--t0);
+}
+.faixa-teste strong { color: #4F3608; }
+.faixa-acoes { display: flex; align-items: center; gap: 16px; }
+.faixa-acoes .link { color: #6B4A0E; }
+.faixa-acoes .botao { padding: 6px 12px; background: #fff; border-color: #E0C48C; }
+.modo-teste .trilho { border-right-color: #E6CF9E; }
+.modo-teste .marca::after { content: "teste"; margin-left: 8px; padding: 2px 7px; border-radius: 6px; background: #F6E7C8; color: #6B4A0E; font-size: 11px; font-weight: 750; letter-spacing: 0; vertical-align: 6px; }
+@media (max-width: 860px) {
+  .faixa-teste { top: 57px; padding: 8px 16px; font-size: var(--t-1); flex-wrap: nowrap; }
+  .faixa-teste p { line-height: 1.35; }
+  .faixa-acoes .link { display: none; } /* no celular, só "sair" (recriar/apagar ficam no computador) */
+  .faixa-acoes .botao { white-space: nowrap; padding: 5px 10px; font-size: var(--t-1); }
+  .conta { display: flex; align-items: center; gap: 10px; }
+  .conta .alternar-teste { font-size: 0; gap: 0; } /* só a caixinha (o nome fica no title) */
+}

@@ -87,6 +87,7 @@ function salvar_lancamento(PDO $pdo, array $e): array
         'fatura' => null,
         'pago' => array_key_exists('pago', $e) ? (int) (bool) $e['pago'] : ($data <= date('Y-m-d') ? 1 : 0),
         'observacao' => texto($e, 'observacao', 5000),
+        'teste' => (int) $conta['teste'],
     ];
     if ($tipo === 'transferencia') {
         $destino = conta($pdo, id_ok($e['conta_destino_id'] ?? null, 'conta_destino_id'));
@@ -111,7 +112,7 @@ function salvar_lancamento(PDO $pdo, array $e): array
     }
 
     if ($id) {
-        $atual = linha($pdo, 'SELECT id FROM lancamentos WHERE id = ?', [$id]) ?? throw new ErroValidacao('Lançamento não encontrado.');
+        $atual = lancamento($pdo, $id);
         $sets = implode(', ', array_map(fn($k) => "`$k` = :$k", array_keys($d)));
         executar($pdo, "UPDATE lancamentos SET $sets WHERE id = :id", $d + ['id' => $id]);
         return ['id' => $id];
@@ -153,7 +154,7 @@ function salvar_lancamento(PDO $pdo, array $e): array
 function apagar_lancamento(PDO $pdo, array $e): array
 {
     $id = id_ok($e['id'] ?? null, 'id');
-    $l = linha($pdo, 'SELECT id, grupo, parcela FROM lancamentos WHERE id = ?', [$id]) ?? throw new ErroValidacao('Lançamento não encontrado.');
+    $l = lancamento($pdo, $id);
     if (!empty($e['todas_parcelas']) && $l['grupo']) {
         // Apaga esta e as próximas parcelas (as anteriores já aconteceram)
         $n = executar($pdo, 'DELETE FROM lancamentos WHERE grupo = ? AND parcela >= ?', [$l['grupo'], $l['parcela']]);
@@ -166,6 +167,14 @@ function apagar_lancamento(PDO $pdo, array $e): array
 function marcar_pago(PDO $pdo, array $e): array
 {
     $id = id_ok($e['id'] ?? null, 'id');
+    lancamento($pdo, $id);
     executar($pdo, 'UPDATE lancamentos SET pago = ? WHERE id = ?', [(int) (bool) ($e['pago'] ?? true), $id]);
     return ['id' => $id];
+}
+
+/** Lançamento do modo atual (real ou teste). */
+function lancamento(PDO $pdo, int $id): array
+{
+    return linha($pdo, 'SELECT id, grupo, parcela FROM lancamentos WHERE id = ? AND teste = ?', [$id, modo_teste()])
+        ?? throw new ErroValidacao('Lançamento não encontrado.');
 }

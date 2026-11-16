@@ -1,9 +1,12 @@
 /* Conversa com a API em PHP. Sem login → evento "fin:login". */
 
+/** Modo de dados: o servidor separa reais e de teste por este cabeçalho. */
+const modo = () => (document.body.classList.contains("modo-teste") ? { "X-Fin-Teste": "1" } : {});
+
 async function pedir(url, opcoes = {}) {
   let r;
   try {
-    r = await fetch(url, { cache: "no-store", credentials: "same-origin", ...opcoes });
+    r = await fetch(url, { cache: "no-store", credentials: "same-origin", ...opcoes, headers: { ...modo(), ...(opcoes.headers || {}) } });
   } catch {
     throw new Error("Sem conexão com o servidor.");
   }
