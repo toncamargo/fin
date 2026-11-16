@@ -1,0 +1,145 @@
+/* =========================================================================
+   Estrutura: trilho (marca, mês, seções, conta) + tela + gaveta lateral
+   ========================================================================= */
+.app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+
+.trilho {
+  position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 28px;
+  padding: 28px 18px 20px 24px; border-right: 1px solid var(--linha); background: var(--papel);
+}
+.marca { font-size: 30px; font-weight: 800; letter-spacing: -.04em; text-decoration: none; color: var(--verde); line-height: 1; }
+.marca span, .login-marca span { color: var(--verde-luz); -webkit-text-stroke: 1.5px var(--verde); }
+
+/* Seletor de mês: o centro de tudo */
+.mes { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; gap: 2px; margin: 0 -6px; }
+.mes-seta {
+  display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--suave);
+}
+.mes-seta:hover { background: var(--papel-fundo); color: var(--tinta); }
+.mes-nome { border: 0; background: none; padding: 4px; font-size: var(--t2); font-weight: 750; text-transform: lowercase; line-height: 1.1; }
+.mes-nome small { display: block; color: var(--apagado); font-size: var(--t-1); font-weight: 600; }
+.mes-nome:hover { color: var(--verde); }
+
+.nav { display: grid; gap: 2px; }
+.nav a {
+  position: relative; display: block; padding: 8px 12px; border-radius: 9px; text-decoration: none;
+  color: var(--suave); font-weight: 600; font-size: var(--t0);
+}
+.nav a:hover { background: var(--papel-fundo); color: var(--tinta); }
+.nav a[aria-current="page"] { color: var(--tinta); background: var(--cartao); box-shadow: inset 0 0 0 1px var(--linha); }
+.nav a[aria-current="page"]::before {
+  content: ""; position: absolute; left: -12px; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--verde);
+}
+
+.conta { margin-top: auto; display: grid; gap: 10px; }
+.botao-texto { justify-self: start; border: 0; background: none; padding: 0; color: var(--suave); font-size: var(--t-1); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.botao-texto:hover { color: var(--tinta); }
+.conta-quem {
+  display: flex; align-items: center; gap: 10px; padding: 6px; margin: 0 -6px; border: 0; border-radius: 10px; background: none; text-align: left;
+  font-size: var(--t-1); color: var(--suave); min-width: 0;
+}
+.conta-quem:hover { background: var(--papel-fundo); }
+.conta-quem img, .conta-quem .inicial { width: 30px; height: 30px; border-radius: 50%; flex: none; }
+.conta-quem .inicial { display: grid; place-items: center; background: var(--verde); color: #fff; font-weight: 800; }
+.conta-quem span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conta-quem strong { display: block; color: var(--tinta); font-size: var(--t0); }
+
+.tela { padding: 40px clamp(20px, 4vw, 56px) 120px; max-width: 1180px; width: 100%; outline: none; }
+
+/* Botão flutuante de lançar */
+.lancar {
+  position: fixed; right: 28px; bottom: 28px; z-index: 5; display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 20px 14px 16px; border: 0; border-radius: 999px; background: var(--verde); color: #fff;
+  font-weight: 700; box-shadow: 0 10px 28px rgba(44, 94, 74, .35); transition: transform .15s, background .15s;
+}
+.lancar:hover { background: var(--verde-forte); transform: translateY(-1px); }
+
+/* Botões e campos */
+.botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px; border-radius: 10px;
+  border: 1px solid var(--linha); background: var(--cartao); font-weight: 650; font-size: var(--t0); text-decoration: none;
+}
+.botao:hover { border-color: var(--tinta); }
+.botao.primario { background: var(--verde); border-color: var(--verde); color: #fff; }
+.botao.primario:hover { background: var(--verde-forte); }
+.botao.perigo { color: var(--despesa); }
+.botao.perigo:hover { border-color: var(--despesa); }
+.botao:disabled { opacity: .55; cursor: default; }
+
+.campo { display: grid; gap: 6px; font-size: var(--t-1); font-weight: 650; color: var(--suave); }
+.campo input, .campo select, .campo textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--linha); border-radius: 10px; background: #fff;
+  font-size: var(--t1); font-weight: 500; color: var(--tinta);
+}
+.campo input:focus, .campo select:focus, .campo textarea:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(44, 94, 74, .14); }
+.erro { color: var(--despesa); font-size: var(--t0); font-weight: 600; }
+
+/* Gaveta lateral */
+.gaveta {
+  position: fixed; inset: 0 0 0 auto; margin: 0; width: min(460px, 100vw); height: 100vh; max-height: none; max-width: none;
+  padding: 0; border: 0; border-left: 1px solid var(--linha); background: var(--cartao); color: var(--tinta);
+  box-shadow: -20px 0 50px rgba(23, 33, 29, .12);
+}
+.gaveta::backdrop { background: rgba(23, 33, 29, .22); }
+.gaveta[open] { animation: entrar .22s ease-out; }
+@keyframes entrar { from { transform: translateX(40px); opacity: 0; } }
+.gaveta form { display: flex; flex-direction: column; height: 100%; }
+.gaveta header { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 8px; }
+.gaveta .corpo { flex: 1; overflow: auto; display: grid; align-content: start; gap: 16px; padding: 12px 24px 24px; }
+.gaveta footer { display: flex; justify-content: space-between; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--linha); }
+.gaveta footer .direita { display: flex; gap: 10px; margin-left: auto; }
+.fechar { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: none; color: var(--suave); }
+.fechar:hover { background: var(--papel-fundo); color: var(--tinta); }
+.linha-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Aviso (toast) */
+.aviso {
+  position: fixed; left: 50%; bottom: 28px; z-index: 30; transform: translateX(-50%); padding: 11px 18px; border-radius: 10px;
+  background: var(--tinta); color: #fff; font-weight: 600; font-size: var(--t0); box-shadow: var(--sombra);
+}
+.aviso.erro { background: var(--despesa); color: #fff; }
+
+/* Login */
+.login { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--papel); position: relative; overflow: hidden; }
+.login::before { content: ""; position: absolute; inset: 0; background: url("../img/trama.svg") center / cover no-repeat; opacity: .55; }
+.login-miolo { position: relative; display: grid; gap: 14px; justify-items: start; width: min(360px, 100%); }
+.login-marca { font-size: 88px; font-weight: 800; letter-spacing: -.06em; line-height: .9; color: var(--verde); }
+.login-texto { color: var(--suave); font-size: var(--t2); margin-bottom: 14px; }
+.botao-google {
+  display: inline-flex; align-items: center; gap: 12px; padding: 12px 20px; border: 1px solid #747775; border-radius: 999px;
+  background: #fff; color: #1F1F1F; font-weight: 600; text-decoration: none;
+}
+.botao-google:hover { border-color: var(--tinta); }
+.login-erro { color: var(--despesa); font-weight: 600; font-size: var(--t0); }
+
+/* Celular: o trilho vira barra no topo + abas embaixo */
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; }
+  .trilho {
+    position: sticky; top: 0; z-index: 6; height: auto; flex-direction: row; align-items: center; gap: 12px;
+    padding: 12px 16px; border-right: 0; border-bottom: 1px solid var(--linha); background: var(--papel);
+    /* sem backdrop-filter: ele prenderia a barra de abas (position: fixed) dentro do topo */
+  }
+  .marca { font-size: 24px; }
+  .mes { margin: 0 auto; }
+  .mes-nome { font-size: var(--t1); }
+  .conta { margin: 0; }
+  .conta .botao-texto, .conta-quem span { display: none; }
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; gap: 0; overflow-x: auto; padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--cartao); border-top: 1px solid var(--linha); scrollbar-width: none;
+  }
+  .nav a { flex: none; padding: 9px 12px; font-size: var(--t-1); }
+  .nav a[aria-current="page"]::before { left: 12px; right: 12px; top: auto; bottom: 2px; width: auto; height: 3px; }
+  .tela { padding: 22px 16px 140px; }
+  .lancar { right: 16px; bottom: 76px; padding: 14px; }
+  .lancar span { display: none; }
+  .linha-2 { grid-template-columns: 1fr; }
+}
+
+/* Aviso quando o app não consegue iniciar */
+.sem-servidor { max-width: 560px; margin: 12vh auto; padding: 0 24px; display: grid; gap: 14px; }
+.sem-servidor h1 { font-size: var(--t3); }
+.sem-servidor p { color: var(--suave); }
+.sem-servidor pre { margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--tinta); color: #E8F1E4; font: 500 14px/1.6 ui-monospace, Menlo, monospace; overflow-x: auto; }
+.sem-servidor a { color: var(--verde); font-weight: 700; }

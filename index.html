@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F2F4EF">
+  <title>Fin</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/vendor/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="stylesheet" href="assets/css/telas.css">
+</head>
+<body>
+  <!-- Login -->
+  <main id="login" class="login" hidden>
+    <div class="login-miolo">
+      <p class="login-marca">Fin<span>.</span></p>
+      <p class="login-texto">Suas contas, cartões e metas num lugar só.</p>
+      <a class="botao-google" href="api/auth/entrar.php">
+        <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Entrar com Google
+      </a>
+      <p id="login-erro" class="login-erro" role="alert" hidden></p>
+    </div>
+  </main>
+
+  <!-- Aplicativo -->
+  <div id="app" class="app" hidden>
+    <aside class="trilho">
+      <a class="marca" href="#/">Fin<span>.</span></a>
+
+      <div class="mes" role="group" aria-label="Mês">
+        <button class="mes-seta" data-mes="-1" aria-label="Mês anterior"></button>
+        <button class="mes-nome" id="mes-nome" title="Voltar para o mês atual"></button>
+        <button class="mes-seta" data-mes="1" aria-label="Próximo mês"></button>
+      </div>
+
+      <nav class="nav" aria-label="Seções">
+        <a href="#/" data-rota="visao">Visão do mês</a>
+        <a href="#/lancamentos" data-rota="lancamentos">Lançamentos</a>
+        <a href="#/contas" data-rota="contas">Contas e cartões</a>
+        <a href="#/orcamento" data-rota="orcamento">Orçamento</a>
+        <a href="#/metas" data-rota="metas">Metas</a>
+        <a href="#/investimentos" data-rota="investimentos">Investimentos</a>
+        <a href="#/importar" data-rota="importar">Importar extrato</a>
+      </nav>
+
+      <div class="conta">
+        <button id="btn-privado" class="botao-texto" aria-pressed="false">Esconder valores</button>
+        <button id="btn-conta" class="conta-quem"></button>
+      </div>
+    </aside>
+
+    <main id="tela" class="tela" tabindex="-1"></main>
+
+    <button id="btn-lancar" class="lancar" aria-label="Novo lançamento (N)" title="Novo lançamento (N)"></button>
+  </div>
+
+  <!-- Painel lateral (novo / editar lançamento, contas...) -->
+  <dialog id="gaveta" class="gaveta" aria-labelledby="gaveta-titulo"></dialog>
+
+  <div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+
+  <!-- Se o app não iniciar (aberto direto do arquivo, servidor parado, erro de script), explica em vez de ficar em branco -->
+  <div id="sem-servidor" class="sem-servidor" hidden>
+    <p class="login-marca">Fin<span>.</span></p>
+    <h1>O Fin precisa do servidor rodando</h1>
+    <p data-motivo>Este arquivo foi aberto direto do disco; assim o navegador não roda o site.</p>
+    <p>No Terminal:</p>
+    <pre>cd ~/Ton/fin
+php -S 127.0.0.1:8788 router.php</pre>
+    <p>e abra <a href="http://localhost:8788">http://localhost:8788</a>.</p>
+  </div>
+  <script>
+    (function () {
+      var mostrar = function (motivo) {
+        if (window.__finIniciou) return;
+        var el = document.getElementById("sem-servidor");
+        if (motivo) el.querySelector("[data-motivo]").textContent = motivo;
+        el.hidden = false;
+      };
+      if (location.protocol === "file:") return mostrar();
+      window.addEventListener("error", function (ev) {
+        if (ev.target && ev.target.tagName === "SCRIPT") mostrar("Não consegui carregar os scripts do site.");
+      }, true);
+      setTimeout(function () { mostrar("O site não iniciou. Confira se o servidor está rodando e recarregue a página."); }, 8000);
+    })();
+  </script>
+  <script type="module" src="assets/js/main.js"></script>
+</body>
+</html>
